@@ -24,11 +24,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 module.exports = {
   solidity: "0.8.4",
   networks: {
-    hardhat: {
-      chainId: 1,
-      forking: {
-        url: process.env.RPC,
-      },
+    mainnet: {
+      url: process.env.RPC || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   gasReporter: {
