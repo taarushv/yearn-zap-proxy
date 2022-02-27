@@ -24,10 +24,9 @@ contract YieldDonator {
 
     uint256 public totalDeployed;
 
-    modifier pausable {
+    modifier pausable() {
         require(!stopped, "Paused");
         _;
-
     }
 
     constructor(address _donationAddress, IYVault _yearnVault) {
@@ -46,23 +45,22 @@ contract YieldDonator {
         uint256 minTokensRec
     ) external payable pausable {
         sellAmount = _pull(sellToken, sellAmount);
-        uint256 buyAmt = _execute(sellToken, buyToken, sellAmount, target, data);
-        balanceOf[msg.sender] += buyAmt;
 
-        uint256 intialBal = yearnVault.balanceOf(address(this));
+        uint256 buyAmount = _execute(
+            sellToken,
+            buyToken,
+            sellAmount,
+            target,
+            data
+        );
 
-        ERC20 _buyToken = ERC20(buyToken);
-        _buyToken.approve(address(yearnVault), 0);
-        _buyToken.approve(address(yearnVault), buyAmt);
+        balanceOf[msg.sender] += buyAmount;
 
-        yearnVault.deposit(buyAmt);
+        uint256 yTokensRec = _deposit(buyToken, buyAmount);
 
-        uint256 finalBal = yearnVault.balanceOf(address(this)) - intialBal;
+        require(yTokensRec >= minTokensRec, "High slippage");
 
-        totalDeployed += finalBal;
-
-        require(finalBal >= minTokensRec, "High slippage");
-
+        totalDeployed += yTokensRec;
     }
 
     function withdraw() external {}
@@ -71,7 +69,7 @@ contract YieldDonator {
 
     function _pull(address token, uint256 quantity) internal returns (uint256) {
         if (token == address(0)) {
-            require(msg.value > 0, "ETH not sent!");
+            require(msg.value > 0, "ETH not sent");
             return msg.value;
         }
         require(msg.value == 0, "ETH sent with token");
@@ -119,5 +117,20 @@ contract YieldDonator {
         amountBought = _buyToken.balanceOf(address(this)) - initialBalance;
 
         require(amountBought > 0, "Invalid execution");
+    }
+
+    function _deposit(address depositToken, uint256 depositAmount)
+        internal
+        returns (uint256 yTokensRec)
+    {
+        uint256 intialBalance = yearnVault.balanceOf(address(this));
+
+        ERC20 _depositToken = ERC20(depositToken);
+        _depositToken.approve(address(yearnVault), 0);
+        _depositToken.approve(address(yearnVault), depositAmount);
+
+        yearnVault.deposit(depositAmount);
+
+        yTokensRec = yearnVault.balanceOf(address(this)) - intialBalance;
     }
 }
