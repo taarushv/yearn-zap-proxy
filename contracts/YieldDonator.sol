@@ -80,6 +80,8 @@ contract YieldDonator is Ownable {
         uint256 yTokensRec = _deposit(buyToken, buyAmount);
 
         require(yTokensRec >= minYTokens, "High slippage");
+
+        emit Deposit(msg.sender, buyAmount);
     }
 
     function withdraw(uint256 amount) external {
@@ -97,6 +99,8 @@ contract YieldDonator is Ownable {
         );
 
         yearnVault.withdraw(withdrawAmount, msg.sender);
+
+        emit Withdraw(msg.sender, amount);
     }
 
     function harvest(
@@ -135,6 +139,8 @@ contract YieldDonator is Ownable {
         require(buyAmount > minBuyAmount, "High slippage");
 
         ERC20(buyToken).safeTransfer(donationAddress, buyAmount);
+
+        emit Harvest(msg.sender, buyAmount);
     }
 
     function _pull(address token, uint256 quantity) internal returns (uint256) {
